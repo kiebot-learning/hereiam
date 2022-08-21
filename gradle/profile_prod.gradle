@@ -1,6 +1,14 @@
+sourceSets {
+    test {
+        java {
+            exclude 'com/kiebot/kietalk/hereiam/config/PostgreSqlTestContainer.java'
+        }
+    }
+}
+
 dependencies {
-    implementation "org.postgresql:postgresql"
-    liquibaseRuntime "org.postgresql:postgresql"
+    developmentOnly "org.springframework.boot:spring-boot-devtools:${springBootVersion}"
+    implementation "com.h2database:h2"
     testImplementation "org.testcontainers:postgresql"
 }
 

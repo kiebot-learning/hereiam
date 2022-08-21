@@ -31,7 +31,7 @@
     "otherModules": [],
     "packageName": "com.kiebot.kietalk.hereiam",
     "pages": [],
-    "prodDatabaseType": "postgresql",
+    "prodDatabaseType": "sql",
     "reactive": false,
     "searchEngine": false,
     "serverPort": "8080",

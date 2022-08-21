@@ -1,4 +1,4 @@
-name: Application CI
+name: Application Pipeline
 on: [push, pull_request]
 jobs:
   validation:
@@ -7,8 +7,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: gradle/wrapper-validation-action@v1
-  pipeline:
-    name: hereiam pipeline
+  test_and_build:
+    name: Test, Analyze and Build HereIam
     runs-on: ubuntu-latest
     if: "!contains(github.event.head_commit.message, '[draft]') && !contains(github.event.head_commit.message, '[wip]') && !contains(github.event.pull_request.title, '[wip]') && !contains(github.event.pull_request.title, '[draft]')"
     timeout-minutes: 40
@@ -24,7 +24,8 @@ jobs:
           node-version: 16.16.0
       - uses: actions/setup-java@v3
         with:
-          java-version: 12
+          distribution: 'temurin'
+          java-version: 11
       - name: Install node.js packages
         run: npm install
       - name: Run backend test
@@ -45,9 +46,3 @@ jobs:
           fi
       - name: Package application
         run: npm run java:jar:prod
-      - name: Build and publish docker image
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
-        run: |
-          GIT_TAG=:${GITHUB_REF#refs/tags/}
-          DOCKER_TAG=${GIT_TAG#:refs/heads/main}
-          ./gradlew jib -Djib.to.image=jhipster/hereiam${DOCKER_TAG} -Djib.to.auth.username="${{ secrets.DOCKER_USERNAME }}" -Djib.to.auth.password="${{ secrets.DOCKER_PASSWORD }}" -Pprod
