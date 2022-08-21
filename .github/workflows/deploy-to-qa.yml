@@ -1,0 +1,63 @@
+name: Build and Deploy to QA
+
+on:
+  workflow_run:
+    workflows: ["Test and Analyze Code quality"]
+    branches: [main]
+
+env:
+  application_war: hereiam-0.0.1-SNAPSHOT.war
+  AWS_REGION: us-west-2
+  S3BUCKET: kietalk
+
+
+jobs:
+  build:
+    name: Build and Package
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v3
+        name: Checkout Repository
+
+      - uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: ${{ secrets.IAMROLE_GITHUB }}
+          role-session-name: GitHub-Action-Role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: 11
+
+      - name: Build and Package Maven
+        id: package
+        run: ./gradlew -Pprod -Pwar clean bootWar
+
+      - name: Upload Artifact to s3
+        run: aws s3 cp build/libs/${{ env.application_war }} s3://${{ env.S3BUCKET }}/
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: QA
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: ${{ secrets.IAMROLE_GITHUB }}
+          role-session-name: GitHub-Action-Role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - run: |
+          echo "Deploying $GITHUB_REPOSITORY to QA"
+          commit_hash=`git rev-parse HEAD`
+          aws deploy create-deployment --application-name hereiam --deployment-group-name hereiam-qa-instances --github-location repository=$GITHUB_REPOSITORY,commitId=$commit_hash --ignore-application-stop-failures
