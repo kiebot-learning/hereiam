@@ -296,3 +296,12 @@ if (project.hasProperty("nodeInstall")) {
 test.dependsOn webapp_test
 compileJava.dependsOn processResources
 processResources.dependsOn bootBuildInfo
+
+
+sonarqube {
+    properties {
+        property "sonar.projectKey", "kiebot-learning_hereiam"
+        property "sonar.organization", "kiebot-learning"
+        property "sonar.host.url", "https://sonarcloud.io"
+    }
+}

@@ -1,0 +1,53 @@
+name: Application CI
+on: [push, pull_request]
+jobs:
+  validation:
+    name: 'Gradle Wrapper Validation'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: gradle/wrapper-validation-action@v1
+  pipeline:
+    name: hereiam pipeline
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[draft]') && !contains(github.event.head_commit.message, '[wip]') && !contains(github.event.pull_request.title, '[wip]') && !contains(github.event.pull_request.title, '[draft]')"
+    timeout-minutes: 40
+    env:
+      NODE_VERSION: 16.16.0
+      SPRING_OUTPUT_ANSI_ENABLED: DETECT
+      SPRING_JPA_SHOW_SQL: false
+      JHI_DISABLE_WEBPACK_LOGS: true
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16.16.0
+      - uses: actions/setup-java@v3
+        with:
+          java-version: 12
+      - name: Install node.js packages
+        run: npm install
+      - name: Run backend test
+        run: |
+          chmod +x gradlew
+          npm run ci:backend:test
+      - name: Run frontend test
+        run: npm run ci:frontend:test
+      - name: Analyze code with SonarQube
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          if [ ! -z "$SONAR_TOKEN" ]; then
+              ./gradlew sonarqube --no-daemon -Dsonar.organization=kiebot-learning -Dsonar.host.url=https://sonarcloud.io
+          else
+              echo No SONAR_TOKEN, skipping...
+          fi
+      - name: Package application
+        run: npm run java:jar:prod
+      - name: Build and publish docker image
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
+        run: |
+          GIT_TAG=:${GITHUB_REF#refs/tags/}
+          DOCKER_TAG=${GIT_TAG#:refs/heads/main}
+          ./gradlew jib -Djib.to.image=jhipster/hereiam${DOCKER_TAG} -Djib.to.auth.username="${{ secrets.DOCKER_USERNAME }}" -Djib.to.auth.password="${{ secrets.DOCKER_PASSWORD }}" -Pprod
