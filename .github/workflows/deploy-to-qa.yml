@@ -2,7 +2,9 @@ name: Build and Deploy to QA
 
 on:
   workflow_run:
-    workflows: ["Test and Analyze Code quality"]
+    workflows: [Test and Analyze Code quality]
+    types:
+      - completed
     branches: [main]
 
 env:
@@ -44,7 +46,6 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
-    environment: QA
     permissions:
       id-token: write
       contents: read

@@ -1,0 +1,34 @@
+name: Build and Deploy to Prod
+
+on:
+  workflow_run:
+    workflows: [Build and Deploy to QA]
+    types:
+      - completed
+    branches: [main]
+
+env:
+  application_war: hereiam-0.0.1-SNAPSHOT.war
+  AWS_REGION: us-west-2
+  S3BUCKET: kietalk
+
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: ${{ secrets.IAMROLE_GITHUB }}
+          role-session-name: GitHub-Action-Role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - run: |
+          echo "Deploying $GITHUB_REPOSITORY to Prod"
+          commit_hash=`git rev-parse HEAD`
+          aws deploy create-deployment --application-name hereiam --deployment-group-name hereiam-prod-instances --github-location repository=$GITHUB_REPOSITORY,commitId=$commit_hash --ignore-application-stop-failures
