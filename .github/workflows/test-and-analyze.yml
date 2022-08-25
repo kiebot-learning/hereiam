@@ -1,5 +1,7 @@
 name: Test and Analyze Code quality
-on: [push, pull_request]
+
+on: [pull_request]
+
 jobs:
   validation:
     name: 'Gradle Wrapper Validation'
